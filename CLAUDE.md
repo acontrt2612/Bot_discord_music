@@ -62,7 +62,7 @@ npm start
 
 Windows 11, Node 24, npm 11. Không có ffmpeg hệ thống (dùng `ffmpeg-static`). Không có GitHub CLI (`gh`).
 
-Git: nhánh `main`, remote `origin` = https://github.com/hoangnd2612/Bot_discord_music.git (tài khoản GitHub `hoangnd2612`).
+Git: nhánh `main`, remote `origin` = https://github.com/acontrt2612/Bot_discord_music.git. Git Credential Manager đăng nhập GitHub bằng tài khoản `acontrt2612` (khác với `user.name` git là `hoangnd2612`). Push trực tiếp lên `main`.
 
 ## Nhật ký
 
@@ -71,7 +71,7 @@ Git: nhánh `main`, remote `origin` = https://github.com/hoangnd2612/Bot_discord
   - Đã kiểm tra: tìm kiếm, gợi ý, stream, tua, cả 9 filter, lời bài hát, logic hàng đợi (dùng adapter voice giả), panel hợp lệ với 186 bài.
   - **Chưa kiểm tra:** chạy thật trong server Discord (người dùng chưa đưa token). Nếu người dùng báo lỗi khi chạy thật, ưu tiên xem phần này.
 - **2026-10-29** — Tạo CLAUDE.md làm nhật ký dự án; thêm quy tắc Claude tự cập nhật nhật ký sau mỗi thay đổi.
-- **2026-10-29** — Khởi tạo git, commit đầu tiên, gắn remote GitHub `Bot_discord_music`. Repo trên GitHub chưa được tạo nên chưa push được; chờ người dùng tạo repo trống rồi `git push -u origin main`.
+- **2026-10-29** — Khởi tạo git và đẩy dự án lên https://github.com/acontrt2612/Bot_discord_music.
 
 ## Việc tiếp theo / ý tưởng
 
