@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { PassThrough } from 'node:stream';
 import ffmpegPath from 'ffmpeg-static';
 import youtubeDl from 'youtube-dl-exec';
+import { isSpotify, resolveSpotify } from './spotify.js';
 
 // yt-dlp needs a JS runtime to solve YouTube challenges; Node is already present.
 const baseFlags = {
@@ -30,9 +31,11 @@ function toTrack(info, requestedBy) {
 }
 
 /**
- * Resolves a search query, video URL or playlist URL into a list of tracks.
+ * Resolves a search query, video URL, playlist URL or Spotify link into a list of tracks.
  */
 export async function resolve(query, requestedBy) {
+  if (isSpotify(query)) return resolveSpotify(query, requestedBy);
+
   const target = isUrl(query) ? query : `ytsearch1:${query}`;
   const info = await youtubeDl(target, {
     ...baseFlags,
@@ -50,14 +53,53 @@ export async function resolve(query, requestedBy) {
   return { playlistTitle: null, tracks: [toTrack(info, requestedBy)] };
 }
 
+const SEARCH_CANDIDATES = 5;
+const DURATION_TOLERANCE = 7;
+
+/** Picks the YouTube video closest in length to the original song, preferring higher-ranked results. */
+async function searchYoutube({ query, duration }) {
+  const info = await youtubeDl(`ytsearch${SEARCH_CANDIDATES}:${query}`, {
+    ...baseFlags,
+    dumpSingleJson: true,
+    flatPlaylist: true,
+  });
+  const entries = (info.entries ?? []).filter((e) => e?.url);
+  if (!entries.length) return null;
+  const close = entries.find((e) => Math.abs((e.duration ?? 0) - duration) <= DURATION_TOLERANCE);
+  const closest = entries.reduce((best, e) =>
+    Math.abs((e.duration ?? 0) - duration) < Math.abs((best.duration ?? 0) - duration) ? e : best,
+  );
+  return toTrack(close ?? closest, null);
+}
+
+const playableUrls = new WeakMap();
+
+/**
+ * URL that yt-dlp can download. Spotify tracks are searched on YouTube once and the result is reused.
+ * Resolves to null when nothing matches.
+ */
+export function playableUrl(track) {
+  if (!track.search) return Promise.resolve(track.url);
+  if (!playableUrls.has(track)) {
+    const promise = searchYoutube(track.search).then((match) => {
+      if (match) track.thumbnail ??= match.thumbnail;
+      return match?.url ?? null;
+    });
+    // Let a failed search be retried next time instead of caching the failure.
+    promise.catch(() => playableUrls.delete(track));
+    playableUrls.set(track, promise);
+  }
+  return playableUrls.get(track);
+}
+
 const suggestionCache = new Map();
 
 /**
- * Related songs for a YouTube track, taken from its YouTube Mix playlist.
+ * Related songs for a track, taken from the YouTube Mix playlist of its YouTube video.
  * Returned tracks have no `requestedBy`; set it when enqueuing.
  */
 export async function getSuggestions(track) {
-  const id = youtubeId(track.url);
+  const id = youtubeId(await playableUrl(track));
   if (!id) return [];
   if (suggestionCache.has(id)) return suggestionCache.get(id);
 
@@ -86,12 +128,31 @@ const MAX_BUFFER_BYTES = 64 * 1024 * 1024;
  * so seeking or changing filters can replay it without downloading again.
  */
 export class AudioSource {
-  constructor(url) {
+  constructor(track) {
     this.chunks = [];
     this.size = 0;
     this.ended = false;
     this.seekable = true;
+    this.destroyed = false;
+    this.process = null;
     this.readers = new Set();
+    // Readers can be created right away; they simply wait until the download starts.
+    this.#start(track);
+  }
+
+  async #start(track) {
+    let url = null;
+    try {
+      url = await playableUrl(track);
+    } catch (err) {
+      console.error(`Không tìm được nguồn phát cho "${track.title}":`, err.message);
+    }
+    if (this.destroyed) return;
+    if (!url) {
+      // Ending with no data makes the player go idle and move to the next track.
+      this.#finish();
+      return;
+    }
 
     this.process = youtubeDl.exec(
       url,
@@ -112,11 +173,13 @@ export class AudioSource {
       }
       for (const reader of this.readers) reader.write(chunk);
     });
-    this.process.stdout.once('close', () => {
-      this.ended = true;
-      for (const reader of this.readers) reader.end();
-    });
+    this.process.stdout.once('close', () => this.#finish());
     this.process.stdout.on('error', noop);
+  }
+
+  #finish() {
+    this.ended = true;
+    for (const reader of this.readers) reader.end();
   }
 
   /** A stream of the audio from the beginning, following the download as it continues. */
@@ -134,7 +197,8 @@ export class AudioSource {
   }
 
   destroy() {
-    if (this.process.exitCode === null) this.process.kill();
+    this.destroyed = true;
+    if (this.process?.exitCode === null) this.process.kill();
     for (const reader of this.readers) reader.destroy();
     this.readers.clear();
     this.chunks = [];

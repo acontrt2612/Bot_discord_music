@@ -62,9 +62,9 @@ function parseTime(text) {
 const play = {
   data: new SlashCommandBuilder()
     .setName('play')
-    .setDescription('Phát nhạc từ tên bài, link YouTube/SoundCloud hoặc playlist')
+    .setDescription('Phát nhạc từ tên bài, link YouTube/Spotify/SoundCloud hoặc playlist')
     .addStringOption((o) =>
-      o.setName('query').setDescription('Tên bài hát hoặc đường link').setRequired(true),
+      o.setName('query').setDescription('Tên bài hát hoặc đường link (YouTube, Spotify, SoundCloud...)').setRequired(true),
     ),
   async execute(interaction) {
     const error = checkCanPlay(interaction);
@@ -87,7 +87,7 @@ const play = {
 
     if (result.playlistTitle) {
       return interaction.editReply(
-        `📃 Đã thêm **${result.tracks.length}** bài từ playlist **${result.playlistTitle}**.`,
+        `📃 Đã thêm **${result.tracks.length}** bài từ ${result.kind ?? 'playlist'} **${result.playlistTitle}**.`,
       );
     }
     const [track] = result.tracks;

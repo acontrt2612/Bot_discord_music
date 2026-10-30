@@ -38,7 +38,11 @@ export async function toggleFavorite(userId, track) {
   const list = (data[userId] ??= []);
   const index = list.findIndex((t) => t.url === track.url);
   if (index >= 0) list.splice(index, 1);
-  else list.push({ title: track.title, url: track.url, duration: track.duration, thumbnail: track.thumbnail });
+  else {
+    const { title, url, duration, thumbnail, search } = track;
+    // `search` lets Spotify songs be found on YouTube again when replayed.
+    list.push({ title, url, duration, thumbnail, ...(search && { search }) });
+  }
   await save();
   return index < 0;
 }

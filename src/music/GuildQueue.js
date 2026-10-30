@@ -285,7 +285,7 @@ export class GuildQueue {
       this.source = this.prefetch.source;
       this.prefetch = null;
     } else {
-      this.source = new AudioSource(track.url);
+      this.source = new AudioSource(track);
     }
     this.#startStream(0);
     this.resendPanel();
@@ -345,7 +345,7 @@ export class GuildQueue {
     const next = this.loop === LoopMode.TRACK ? null : this.tracks[0];
     if (this.prefetch?.track === next) return;
     this.prefetch?.source.destroy();
-    this.prefetch = next ? { track: next, source: new AudioSource(next.url) } : null;
+    this.prefetch = next ? { track: next, source: new AudioSource(next) } : null;
   }
 
   async #loadSuggestions(track) {

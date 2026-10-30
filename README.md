@@ -1,6 +1,8 @@
 # Bot Discord
 
-Bot Discord viết bằng discord.js v14. Hiện có chức năng nghe nhạc (YouTube, SoundCloud và các trang yt-dlp hỗ trợ).
+Bot Discord viết bằng discord.js v14. Hiện có chức năng nghe nhạc (YouTube, Spotify, SoundCloud và các trang yt-dlp hỗ trợ).
+
+Link Spotify (bài hát, album, playlist, nghệ sĩ) được đọc tên bài rồi tìm bản khớp nhất trên YouTube để phát, vì Spotify không cho tải nhạc trực tiếp. Không cần Spotify API key. Album/playlist tối đa 100 bài; link nghệ sĩ lấy top 10 bài.
 
 ## Cài đặt
 
@@ -34,7 +36,7 @@ Chỉ người đang ở cùng kênh thoại với bot mới bấm được các
 
 | Lệnh | Mô tả |
 |---|---|
-| `/play <query>` | Phát theo tên bài, link video hoặc link playlist |
+| `/play <query>` | Phát theo tên bài, link YouTube/Spotify/SoundCloud hoặc playlist |
 | `/skip`, `/previous` | Bỏ qua / quay lại bài trước |
 | `/stop` | Dừng, xoá hàng đợi, rời kênh |
 | `/pause`, `/resume` | Tạm dừng / tiếp tục |
@@ -70,6 +72,7 @@ src/
     favorites.js      # lưu bài yêu thích
     manager.js        # Map guildId -> GuildQueue
     ytdlp.js          # tìm kiếm, gợi ý, tải audio qua yt-dlp
+    spotify.js        # đọc thông tin bài/album/playlist từ link Spotify
 ```
 
 Nếu YouTube đổi cơ chế và bot không phát được, tải lại bản yt-dlp mới nhất: `npm rebuild youtube-dl-exec`.

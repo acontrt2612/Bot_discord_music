@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { REST, Routes } from 'discord.js';
+import { ApplicationIntegrationType, InteractionContextType, REST, Routes } from 'discord.js';
 import { commands } from './commands/index.js';
 
 const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
@@ -9,7 +9,13 @@ if (!DISCORD_TOKEN || !CLIENT_ID) {
 }
 
 const rest = new REST().setToken(DISCORD_TOKEN);
-const body = commands.map((c) => c.data.toJSON());
+// Music needs the bot inside the server's voice channels, so commands are offered only
+// in servers that installed the bot, never in DMs or via a user install.
+const body = commands.map((c) => ({
+  ...c.data.toJSON(),
+  contexts: [InteractionContextType.Guild],
+  integration_types: [ApplicationIntegrationType.GuildInstall],
+}));
 
 // With GUILD_ID the commands appear instantly in that server; global ones can take up to an hour.
 const route = GUILD_ID
